@@ -35,9 +35,6 @@ class Server extends ClientServerBase {
         });
 
         this.server.bind(port, bindAddress);
-        // setInterval(() => {
-        //     this.connectionWatchDog();
-        // }, connectionTimeout / 4);
     }
 
     /**

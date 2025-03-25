@@ -32,6 +32,7 @@ class Socket extends Events {
     }) {
         super();
         this.socketID = !isClient ? uuidv4() : "";
+        this.isClient = isClient;
         this.socket = serverSocket;
         this.port = port;
         this.address = address;
@@ -48,7 +49,6 @@ class Socket extends Events {
 
         this.on("connected", () => {
             this.connected = true;
-            this.deleted = false;
         });
         this.on("disconnected", () => {
             this.connected = false;
@@ -61,9 +61,8 @@ class Socket extends Events {
     _keepalive() {
         if (this.keepAlive) return;
         this.keepAlive = setInterval(() => {
-            this.emit(null, null, { type: "keepAlive" });
             this.connectionWatchDog();
-        }, this.connectionTimeout / 6);
+        }, this.connectionTimeout / 4);
     }
 
     /**
@@ -114,7 +113,9 @@ class Socket extends Events {
         if (
             this.clientID &&
             this.encryptionKey &&
-            (!options.type || options.type == "data")
+            (!options.type ||
+                options.type == "data" ||
+                options.type == "connect")
         ) {
             data = await encrypt(JSON.stringify(data), this.encryptionKey);
         }
@@ -167,12 +168,14 @@ class Socket extends Events {
         if (!this.isClient) this.removeAllListeners(); // only remove listener if client
         console.log("disconnecting socket: " + this.socketID);
         this.deleted = true;
+        this.connected = false;
     }
 
     /**
      * Connection WatchDog
      */
     connectionWatchDog() {
+        this.emit(null, null, { type: "keepAlive" });
         // check if connection is alive
         if (new Date() - this.keepAliveTime > this.connectionTimeout) {
             this.disconnect();
